@@ -4,16 +4,40 @@ class paramExtract():
         import joblib
         import torch
         import numpy as np
+        from smplx import SMPL
         import cv2 as cv
 
-        self.OUTPUT_FILE_PATH = resultFile
-        self.OUTPUT_VID_PATH = videoFile
+        SMPL_MODEL_PTH = 'dataset/body_models/smpl'
+        OUTPUT_FILE_PATH= 'output/demo/Hemiplegic_Sriharsha1/wham_output.pkl'
 
 
 
-        wham_results = joblib.load(self.OUTPUT_FILE_PATH)[target_subject_id]
 
-        self.pose_world = wham_results["pose_world"]
+
+        wham_results = joblib.load(OUTPUT_FILE_PATH)[target_subject_id]
+
+        pose_world = wham_results["pose_world"]
+        trans_world = wham_results["trans_world"]
+        betas = wham_results["betas"]
+
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        body_model = SMPL(SMPL_MODEL_PTH, gender='neutral', num_betas=10).to(device)
+
+        toTensor = lambda x: torch.from_numpy(x).float().to(device)
+
+        smpl_kwargs = dict(
+            global_orient=toTensor(pose_world[..., :3]),
+            body_pose=toTensor(pose_world[..., 3:]),
+            betas=toTensor(betas),
+            transl=toTensor(trans_world)
+        )
+
+        smpl_output = body_model(**smpl_kwargs)
+
+        joints = smpl_output.joints
+        vertices = smpl_output.vertices
+
+        self.pose_world = joints
 
         self.stepWidth = None
         self.stepLength = None
@@ -23,21 +47,46 @@ class paramExtract():
         import joblib
         import torch
         import numpy as np
+        from smplx import SMPL
         import cv2 as cv
-        import math
 
-        self.OUTPUT_FILE_PATH = resultFile
+        SMPL_MODEL_PTH = 'dataset/body_models/smpl'
+        OUTPUT_FILE_PATH= 'output/demo/Hemiplegic_Sriharsha1/wham_output.pkl'
 
 
 
-        wham_results = joblib.load(self.OUTPUT_FILE_PATH)[target_subject_id]
 
-        self.pose_world = wham_results["pose_world"]
+
+        wham_results = joblib.load(OUTPUT_FILE_PATH)[target_subject_id]
+
+        pose_world = wham_results["pose_world"]
+        trans_world = wham_results["trans_world"]
+        betas = wham_results["betas"]
+
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        body_model = SMPL(SMPL_MODEL_PTH, gender='neutral', num_betas=10).to(device)
+
+        toTensor = lambda x: torch.from_numpy(x).float().to(device)
+
+        smpl_kwargs = dict(
+            global_orient=toTensor(pose_world[..., :3]),
+            body_pose=toTensor(pose_world[..., 3:]),
+            betas=toTensor(betas),
+            transl=toTensor(trans_world)
+        )
+
+        smpl_output = body_model(**smpl_kwargs)
+
+        joints = smpl_output.joints
+        vertices = smpl_output.vertices
+
+        self.pose_world = joints
 
         self.stepWidth = None
         self.stepLength = None
         self.cadence = None
 
+    
     def identifyFootfall(self):
         frameIDsLeft = []
         frameIDsRight = []
@@ -79,7 +128,7 @@ class paramExtract():
                 print("Footfalls even")
 
             case _:
-                print("Error: Footfall MisMatch in Data")
+                print(f"Error: Footfall MisMatch in Data by {frameDiff} keypoints")
                 return []
             
         #firstFoot stores the foot data of the foot with the first footfall 
@@ -214,7 +263,7 @@ class paramExtract():
                 print("Footfalls even")
 
             case _:
-                print("Error: Footfall MisMatch in Data")
+                print(f"Error: Footfall MisMatch in Data by {frameDiff} keypoints")
                 return []
             
         #firstFoot stores the foot data of the foot with the first footfall 
