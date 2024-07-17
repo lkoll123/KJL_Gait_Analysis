@@ -1,24 +1,26 @@
 class paramExtract():
     
-    def __init__(self, videoFile, resultFile, target_subject_id=0):
+    def __init__(self, videoFile, resultFile, modelPath, target_subject_id=0):
         import joblib
         import torch
         import numpy as np
         from smplx import SMPL
         import cv2 as cv
 
-        SMPL_MODEL_PTH = 'dataset/body_models/smpl'
-        OUTPUT_FILE_PATH= 'output/demo/Hemiplegic_Sriharsha1/wham_output.pkl'
+        self.VIDEO_PATH = videoFile
+
+        self.SMPL_MODEL_PTH = modelPath
+        OUTPUT_FILE_PATH = resultFile
 
 
-        wham_results = joblib.load(OUTPUT_FILE_PATH)[target_subject_id]
+        wham_results = joblib.load(self.OUTPUT_FILE_PATH)[target_subject_id]
 
         pose_world = wham_results["pose_world"]
         trans_world = wham_results["trans_world"]
         betas = wham_results["betas"]
 
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        body_model = SMPL(SMPL_MODEL_PTH, gender='neutral', num_betas=10).to(device)
+        body_model = SMPL(self.SMPL_MODEL_PTH, gender='neutral', num_betas=10).to(device)
 
         toTensor = lambda x: torch.from_numpy(x).float().to(device)
 
@@ -42,25 +44,27 @@ class paramExtract():
         self.stepLengthRight = None
         self.cadence = None
 
-    def __init__(self, resultFile, target_subject_id=0):
+    def __init__(self, resultFile, modelPath, target_subject_id=0):
         import joblib
         import torch
         import numpy as np
         from smplx import SMPL
         import cv2 as cv
 
-        SMPL_MODEL_PTH = 'dataset/body_models/smpl'
-        OUTPUT_FILE_PATH = 'output/demo/Hemiplegic_Sriharsha1/wham_output.pkl'
+        self.videoFile = None
+
+        self.SMPL_MODEL_PTH = modelPath
+        self.OUTPUT_FILE_PATH = resultFile
 
 
-        wham_results = joblib.load(OUTPUT_FILE_PATH)[target_subject_id]
+        wham_results = joblib.load(self.OUTPUT_FILE_PATH)[target_subject_id]
 
         pose_world = wham_results["pose_world"]
         trans_world = wham_results["trans_world"]
         betas = wham_results["betas"]
 
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        body_model = SMPL(SMPL_MODEL_PTH, gender='neutral', num_betas=10).to(device)
+        body_model = SMPL(self.SMPL_MODEL_PTH, gender='neutral', num_betas=10).to(device)
 
         toTensor = lambda x: torch.from_numpy(x).float().to(device)
 
@@ -294,7 +298,7 @@ class paramExtract():
             
 
             dataPelvic2 = self.pose_world[firstFoot[len(minFoot)][0]][pelvicIndex]
-            dataPelvic1 = self.pose_world[firstFoot[len(minFoot - 1)][0]][pelvicIndex]
+            dataPelvic1 = self.pose_world[firstFoot[len(minFoot) - 1][0]][pelvicIndex]
 
             [plineSlope, plineIntercept] = slope_intercept(dataPelvic1[0], dataPelvic1[2], dataPelvic2[0], dataPelvic2[2])
 
@@ -445,7 +449,7 @@ class paramExtract():
                 dataNext1 = self.pose_world[nextFoot[i][0]][nextIndex]
 
                 data_pelvic1 = self.pose_world[firstFoot[i][0]][pelvicIndex]
-                data_pelvic2 = self.pose_world[nextFoot[i + 1][0]][pelvicIndex]
+                data_pelvic2 = self.pose_world[nextFoot[i][0]][pelvicIndex]
 
                 [plineSlope, plineIntercept] = slope_intercept(data_pelvic1[0], data_pelvic1[2], data_pelvic2[0], data_pelvic2[2])
 
@@ -486,11 +490,11 @@ class paramExtract():
 
         totalValFirst = 0
         for val in lengthsFirst:
-            totalValLeft += val
+            totalValFirst += val
 
         totalValNext = 0
         for val in lengthsNext:
-            totalValRight += val
+            totalValNext += val
 
         if (firstFoot == frameIDsLeft):
             self.stepLengthLeft = totalValFirst/len(lengthsFirst)
@@ -511,9 +515,10 @@ class paramExtract():
         
         
 
-test = paramExtract('/Users/lukakoll/Downloads/wham_output.pkl')
-print(test.calculateStepLength)
-print(test.calculateStepWidth)
+test = paramExtract('output/demo/Normal_Andrew1/wham_output.pkl', 'dataset/body_models/smpl')
+print(test.identifyFootfall())
+print(test.calculateStepLength())
+print(test.calculateStepWidth())
 
 
         
