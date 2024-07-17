@@ -85,7 +85,7 @@ class paramExtract():
         self.cadence = None
 
     
-    def identifyFootfall(self):
+    def identifyFootfall(self): 
         frameIDsLeft = [[0]]
         frameIDsRight = [[0]]
 
@@ -107,7 +107,7 @@ class paramExtract():
         lastThreeRight = []
 
         thresholdUp = 0.045
-        thresholdDown = 0.035
+        thresholdDown = 0.025
 
         counter = 0
         for frame in self.pose_world:
@@ -122,22 +122,24 @@ class paramExtract():
                 if(groundedLeft):
                     if (zPosLeft - lastThreeLeft[2] > thresholdUp):
                         groundedLeft = False
-                        frameIDsLeft[len(frameIDsLeft) - 1][1] = count -= 2
+                        frameIDsLeft[len(frameIDsLeft) - 1].append(counter - 2)
                 
                 else:
-                    if (math.abs(zPosLeft - lastThreeLeft[2]) < thresholdDown):
+                    if (abs(zPosLeft - lastThreeLeft[2]) < thresholdDown):
                         groundedLeft = True
+                        frameIDsLeft.append([counter - 2])
 
 
                 #right footfall
                 if(groundedRight):
                     if (zPosRight - lastThreeRight[2] > thresholdUp):
                         groundedRight = False
-                        frameIDsRight[len(frameIDsRight) - 1][1] = count -= 2
+                        frameIDsRight[len(frameIDsRight) - 1].append(counter - 2)
 
                 else:
-                    if (math.abs(zPosRight - lastThreeRight[2]) < thresholdDown):
+                    if (abs(zPosRight - lastThreeRight[2]) < thresholdDown):
                         groundedRight = True
+                        frameIDsRight.append([counter - 2])
 
 
                     
@@ -151,24 +153,24 @@ class paramExtract():
                 lastThreeRight[0] = zPosRight
 
             elif(len(lastThreeLeft) == 2):
-                lastThreeLeft[2] = lastThreeLeft[1]
+                lastThreeLeft.append(lastThreeLeft[1])
                 lastThreeLeft[1] = lastThreeLeft[0]
                 lastThreeLeft[0] = zPosLeft
 
-                lastThreeRight[2] = lastThreeRight[1]
+                lastThreeRight.append(lastThreeRight[1])
                 lastThreeRight[1] = lastThreeRight[0]
                 lastThreeRight[0] = zPosRight
 
             elif(len(lastThreeLeft) == 1):
-                lastThreeLeft[1] = lastThreeLeft[0]
+                lastThreeLeft.append(lastThreeLeft[0])
                 lastThreeLeft[0] = zPosLeft
 
-                lastThreeRight[1] = lastThreeRight[0]
+                lastThreeRight.append(lastThreeRight[0])
                 lastThreeRight[0] = zPosRight
 
             else:
-                lastThreeLeft[0] = zPosLeft
-                lastThreeRight[0] = zPosRight
+                lastThreeLeft.append(zPosLeft)
+                lastThreeRight.append(zPosRight)
 
 
                 
@@ -176,11 +178,6 @@ class paramExtract():
             counter += 1
 
             
-            
-        print(f"leftMin: {leftMin}")
-        print(f"leftMax: {leftMax}")
-        print(f"rightMin: {rightMin}")
-        print(f"rightMax: {rightMax}")
         
         return [frameIDsLeft, frameIDsRight]
     
@@ -195,7 +192,7 @@ class paramExtract():
         [frameIDsLeft, frameIDsRight] = self.identifyFootfall()
 
         #Checking if sufficient data was collected
-        if (len(frameIDsLeft) <= 1 || len(frameIDsRight) <= 1):
+        if (len(frameIDsLeft) <= 1 or len(frameIDsRight) <= 1):
             raise Exception("Error: Insufficient data collected")
 
         frameDiff = abs(len(frameIDsLeft) - len(frameIDsRight))
@@ -261,7 +258,7 @@ class paramExtract():
                 dataPelvic1 = self.pose_world[firstFoot[i][0]][pelvicIndex]
                 dataPelvic2 = self.pose_world[firstFoot[i + 1][0]][pelvicIndex]
             
-            elif (i < len(minFoot) - 1 && i > 0):
+            elif (i < len(minFoot) - 1 and i > 0):
 
                 dataFirst = self.pose_world[firstFoot[i][1]][firstIndex]
                 dataNext = self.pose_world[nextFoot[i][0]][nextIndex]
@@ -284,8 +281,8 @@ class paramExtract():
             [firstInterceptX, firstInterceptY] = intercept(plineSlope, plineIntercept, firstFootSlope, firstFootIntercept)
             [nextInterceptX, nextInterceptY] = intercept(plineSlope, plineIntercept, nextFootSlope, nextFootIntercept)
 
-            widthsFirst[len(widthsFirst)] = dist(dataFirst[0], dataFirst[2], firstInterceptX, firstInterceptY)
-            widthsNext[len(widthsNext)] = dist(dataNext[0], dataNext[2], nextInterceptX, nextInterceptY)
+            widthsFirst.append(dist(dataFirst[0], dataFirst[2], firstInterceptX, firstInterceptY))
+            widthsNext.append(dist(dataNext[0], dataNext[2], nextInterceptX, nextInterceptY))
 
 
      
@@ -307,7 +304,7 @@ class paramExtract():
 
             [lastInterceptX, lastInterceptY] = intercept(plineSlope, plineIntercept, lastFootSlope, lastFootIntercept)
 
-            widthsFirst[len(widthsFirst)] = dist(dataLast[0], dataLast[2], lastInterceptX, lastInterceptY)
+            widthsFirst.append(dist(dataLast[0], dataLast[2], lastInterceptX, lastInterceptY))
 
         #Calculating averages and returning left and right step widths
 
@@ -341,7 +338,7 @@ class paramExtract():
         #function identifyFootfall returns arrays that record the footfall 
         [frameIDsLeft, frameIDsRight] = self.identifyFootfall()
 
-        if (len(frameIDsLeft) <= 1 || len(frameIDsRight) <= 1):
+        if (len(frameIDsLeft) <= 1 or len(frameIDsRight) <= 1):
             raise Exception("Error: Insufficient data collected")
 
         frameDiff = abs(len(frameIDsLeft) - len(frameIDsRight))
@@ -418,9 +415,9 @@ class paramExtract():
                 [nextInterceptX, nextInterceptY] = intercept(plineSlope, plineIntercept, nextFootSlope, nextFootIntercept)
                 [firstInterceptX2, firstInterceptY2] = intercept(plineSlope, plineIntercept, firstFootSlope2, firstFootIntercept2)
 
-                lengthsFirst[len(lengthsFirst)] = dist(nextInterceptX, nextInterceptY, firstInterceptX2, firstInterceptY2)
+                lengthsFirst.append(dist(nextInterceptX, nextInterceptY, firstInterceptX2, firstInterceptY2))
 
-            elif (i < len(minFoot) - 1 && i > 0):
+            elif (i < len(minFoot) - 1 and i > 0):
                 dataFirst1 = self.pose_world[firstFoot[i][1]][firstIndex]
                 dataNext1 = self.pose_world[nextFoot[i][1]][nextIndex]
                 dataFirst2 = self.pose_world[firstFoot[i + 1][0]][firstIndex]
@@ -440,8 +437,8 @@ class paramExtract():
                 [nextInterceptX, nextInterceptY] = intercept(plineSlope, plineIntercept, nextFootSlope, nextFootIntercept)
                 [firstInterceptX2, firstInterceptY2] = intercept(plineSlope, plineIntercept, firstFootSlope2, firstFootIntercept2)
 
-                lengthsFirst[len(lengthsFirst)] = dist(nextInterceptX, nextInterceptY, firstInterceptX2, firstInterceptY2)
-                lengthsNext[len(lengthsNext)] = dist(firstInterceptX1, firstInterceptY1, nextInterceptX, nextInterceptY)
+                lengthsFirst.append(dist(nextInterceptX, nextInterceptY, firstInterceptX2, firstInterceptY2))
+                lengthsNext.append(dist(firstInterceptX1, firstInterceptY1, nextInterceptX, nextInterceptY))
 
             else:
                 dataFirst1 = self.pose_world[firstFoot[i][0]][firstIndex]
@@ -460,12 +457,7 @@ class paramExtract():
                 [firstInterceptX1, firstInterceptY1] = intercept(plineSlope, plineIntercept, firstFootSlope1, firstFootIntercept1)
                 [nextInterceptX, nextInterceptY] = intercept(plineSlope, plineIntercept, nextFootSlope, nextFootIntercept)
 
-                lengthsNext[len(lengthsNext)] = dist(firstInterceptX1, firstInterceptY1, nextInterceptX, nextInterceptY)
-
-
-
-                
-     
+                lengthsNext.append(dist(firstInterceptX1, firstInterceptY1, nextInterceptX, nextInterceptY))
     
         
 
@@ -490,7 +482,7 @@ class paramExtract():
             [lastInterceptX, lastInterceptY] = intercept(plineSlope, plineIntercept, lastFootSlope, lastFootIntercept)
             [priorInterceptX, priorInterceptY] = intercept(plineSlope, plineIntercept, priorFootSlope, priorFootIntercept)
 
-            lengthsFirst[len(lengthsFirst)] = dist(priorInterceptX, priorInterceptY, lastInterceptX, lastInterceptY)
+            lengthsFirst.append(dist(priorInterceptX, priorInterceptY, lastInterceptX, lastInterceptY))
 
         totalValFirst = 0
         for val in lengthsFirst:
@@ -509,18 +501,19 @@ class paramExtract():
             self.stepLengthRight = totalValFirst/len(lengthsFirst)
             return [self.stepLengthLeft, self.stepLengthRight]
 
-        #Calculates step cadence
-        def calculateCadence() {
-            if (self.cadence != None):
-                return self.cadence
-            return []
+    #Calculates step cadence
+    def calculateCadence(self):
+        if (self.cadence != None):
+            return self.cadence
+        return []
 
-            #TODO: implement
-        }
+        #TODO: implement
+        
         
 
 test = paramExtract('/Users/lukakoll/Downloads/wham_output.pkl')
-print(test.identifyFootfall())
+print(test.calculateStepLength)
+print(test.calculateStepWidth)
 
 
         
