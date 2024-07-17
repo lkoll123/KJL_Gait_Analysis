@@ -107,6 +107,9 @@ class paramExtract():
         groundedLeft = True
         groundedRight = True
 
+        lastUpLeft = 999
+        lastUpRight = 999
+
         lastThreeLeft = []
         lastThreeRight = []
 
@@ -126,10 +129,11 @@ class paramExtract():
                 if(groundedLeft):
                     if (zPosLeft - lastThreeLeft[2] > thresholdUp):
                         groundedLeft = False
+                        lastUpLeft = lastThreeLeft[1]
                         frameIDsLeft[len(frameIDsLeft) - 1].append(counter - 2)
                 
                 else:
-                    if (abs(zPosLeft - lastThreeLeft[2]) < thresholdDown):
+                    if (abs(zPosLeft - lastThreeLeft[2]) < thresholdDown and zPosLeft - lastUpLeft < 0.01):
                         groundedLeft = True
                         frameIDsLeft.append([counter - 2])
 
@@ -138,10 +142,11 @@ class paramExtract():
                 if(groundedRight):
                     if (zPosRight - lastThreeRight[2] > thresholdUp):
                         groundedRight = False
+                        lastUpRight = lastThreeRight[1]
                         frameIDsRight[len(frameIDsRight) - 1].append(counter - 2)
 
                 else:
-                    if (abs(zPosRight - lastThreeRight[2]) < thresholdDown):
+                    if (abs(zPosRight - lastThreeRight[2]) < thresholdDown and zPosRight - lastUpRight < 0.01):
                         groundedRight = True
                         frameIDsRight.append([counter - 2])
 
@@ -507,11 +512,28 @@ class paramExtract():
 
     #Calculates step cadence
     def calculateCadence(self):
+        import cv2 as cv
         if (self.cadence != None):
             return self.cadence
-        return []
 
-        #TODO: implement
+        if (self.VIDEO_PATH == None):
+            raise Exception("Error: Video Path not specified. Vido Path is necessary for Cadence calculation")
+
+        video = cv.VideoCapture(self.VIDEO_PATH)
+        # Get the FPS using the CAP_PROP_FPS property
+        fps = video.get(cv2.CAP_PROP_FPS)
+        video.release()
+
+        [frameIDsLeft, frameIDsRight] = self.identifyFootfall()
+
+        firstFrame = frameIDsLeft[0][1] if frameIDsLeft[0][1] < frameIDsRight[0][1] else frameIDsRight[0][1]
+        lastFrame = frameIDsLeft[len(frameIDsLeft) - 1][0] if frameIDsLeft[len(frameIDsLeft) - 1][0] > frameIDsRight[len(frameIDsRight) - 1][0] else frameIDsRight[len(frameIDsRight) - 1][0]
+
+        duration = (lastFrame - firstFrame + 1) / fps
+        stepCount = len(frameIDsLeft) + len(frameIDsRight) - 2
+
+        self.cadence = stepCount * (60/duration)
+        return self.cadence
         
         
 
