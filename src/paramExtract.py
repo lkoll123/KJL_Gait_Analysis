@@ -110,11 +110,11 @@ class paramExtract():
         lastUpLeft = 999
         lastUpRight = 999
 
-        lastThreeLeft = []
-        lastThreeRight = []
+        lastFourLeft = []
+        lastFourRight = []
 
-        thresholdUp = 0.045
-        thresholdDown = 0.025
+        thresholdUp = 0.035
+        thresholdDown = 0.01
 
         counter = 0
         for frame in self.pose_world:
@@ -122,64 +122,78 @@ class paramExtract():
             zPosLeft = frame[leftIndex][1]
             zPosRight = frame[rightIndex][1]
             #Checking how many frames have passed
-            if(len(lastThreeLeft) == 3):
+            if(len(lastFourLeft) == 4):
 
                 
                 #left footfall
                 if(groundedLeft):
-                    if (zPosLeft - lastThreeLeft[2] > thresholdUp):
+                    if (zPosLeft - lastFourLeft[3] > thresholdUp):
                         groundedLeft = False
-                        lastUpLeft = lastThreeLeft[1]
-                        frameIDsLeft[len(frameIDsLeft) - 1].append(counter - 2)
+                        lastUpLeft = lastFourLeft[3]
+                        frameIDsLeft[len(frameIDsLeft) - 1].append(counter - 3)
                 
                 else:
-                    if (abs(zPosLeft - lastThreeLeft[2]) < thresholdDown and zPosLeft - lastUpLeft < 0.01):
+                    if (abs(zPosLeft - lastFourLeft[3]) < thresholdDown and zPosLeft - lastUpLeft < 0.005):
                         groundedLeft = True
-                        frameIDsLeft.append([counter - 2])
+                        frameIDsLeft.append([counter - 3])
 
 
                 #right footfall
                 if(groundedRight):
-                    if (zPosRight - lastThreeRight[2] > thresholdUp):
+                    if (zPosRight - lastFourRight[3] > thresholdUp):
                         groundedRight = False
-                        lastUpRight = lastThreeRight[1]
+                        lastUpRight = lastFourRight[3]
                         frameIDsRight[len(frameIDsRight) - 1].append(counter - 2)
 
                 else:
-                    if (abs(zPosRight - lastThreeRight[2]) < thresholdDown and zPosRight - lastUpRight < 0.01):
+                    if (abs(zPosRight - lastFourRight[3]) < thresholdDown and zPosRight - lastUpRight < 0.005):
                         groundedRight = True
                         frameIDsRight.append([counter - 2])
 
 
                     
+                lastFourLeft[3] = lastFourLeft[2]
+                lastFourLeft[2] = lastFourLeft[1]
+                lastFourLeft[1] = lastFourLeft[0]
+                lastFourLeft[0] = zPosLeft
 
-                lastThreeLeft[2] = lastThreeLeft[1]
-                lastThreeLeft[1] = lastThreeLeft[0]
-                lastThreeLeft[0] = zPosLeft
+                lastFourRight[3] = lastFourRight[2]
+                lastFourRight[2] = lastFourRight[1]
+                lastFourRight[1] = lastFourRight[0]
+                lastFourRight[0] = zPosRight
 
-                lastThreeRight[2] = lastThreeRight[1]
-                lastThreeRight[1] = lastThreeRight[0]
-                lastThreeRight[0] = zPosRight
+            elif(len(lastFourLeft) == 3):
+                lastFourLeft.append(lastFourLeft[2])
+                lastFourLeft[2] = lastFourLeft[1]
+                lastFourLeft[1] = lastFourLeft[0]
+                lastFourLeft[0] = zPosLeft
 
-            elif(len(lastThreeLeft) == 2):
-                lastThreeLeft.append(lastThreeLeft[1])
-                lastThreeLeft[1] = lastThreeLeft[0]
-                lastThreeLeft[0] = zPosLeft
+                lastFourRight.append(lastFourRight[2])
+                lastFourRight[2] = lastFourRight[1]
+                lastFourRight[1] = lastFourRight[0]
+                lastFourRight[0] = zPosRight
 
-                lastThreeRight.append(lastThreeRight[1])
-                lastThreeRight[1] = lastThreeRight[0]
-                lastThreeRight[0] = zPosRight
 
-            elif(len(lastThreeLeft) == 1):
-                lastThreeLeft.append(lastThreeLeft[0])
-                lastThreeLeft[0] = zPosLeft
 
-                lastThreeRight.append(lastThreeRight[0])
-                lastThreeRight[0] = zPosRight
+            elif(len(lastFourLeft) == 2):
+                lastFourLeft.append(lastFourLeft[1])
+                lastFourLeft[1] = lastFourLeft[0]
+                lastFourLeft[0] = zPosLeft
+
+                lastFourRight.append(lastFourRight[1])
+                lastFourRight[1] = lastFourRight[0]
+                lastFourRight[0] = zPosRight
+
+            elif(len(lastFourLeft) == 1):
+                lastFourLeft.append(lastFourLeft[0])
+                lastFourLeft[0] = zPosLeft
+
+                lastFourRight.append(lastFourRight[0])
+                lastFourRight[0] = zPosRight
 
             else:
-                lastThreeLeft.append(zPosLeft)
-                lastThreeRight.append(zPosRight)
+                lastFourLeft.append(zPosLeft)
+                lastFourRight.append(zPosRight)
 
 
                 
@@ -211,6 +225,7 @@ class paramExtract():
         #Determining which foot had more footfalls
         if frameDiff == 0:
             misMatch = False
+            minFoot = frameIDsLeft
             print("Footfalls even")
         elif frameDiff == 1:
             misMatch = True
@@ -262,36 +277,64 @@ class paramExtract():
 
             if (i == 0):
             
-                dataFirst = self.pose_world[firstFoot[i][1]][firstIndex]
+                dataFirst1 = self.pose_world[firstFoot[i][1]][firstIndex]
                 dataNext = self.pose_world[nextFoot[i][1]][nextIndex]
-                dataPelvic1 = self.pose_world[firstFoot[i][0]][pelvicIndex]
-                dataPelvic2 = self.pose_world[firstFoot[i + 1][0]][pelvicIndex]
+                dataFirst2 = self.pose_world[firstFoot[i + 1][1]][firstIndex]
+                [firstLineSlope, firstLineIntercept] = slope_intercept(dataFirst1[0], dataFirst1[2], dataFirst2[0], dataFirst2[2])
+
+                perp_slope = 1 / firstLineSlope
+
+                [nextFootSlope, nextFootIntercept] = point_slope(perp_slope, dataNext[0], dataNext[2])
+
+                [nextInterceptX, nextInterceptY] = intercept(firstLineSlope, firstLineIntercept, nextFootSlope, nextFootIntercept)
+
+                widthsNext.append(dist(dataNext[0], dataNext[2], nextInterceptX, nextInterceptY))
+                
             
             elif (i < len(minFoot) - 1 and i > 0):
 
-                dataFirst = self.pose_world[firstFoot[i][1]][firstIndex]
-                dataNext = self.pose_world[nextFoot[i][0]][nextIndex]
-                dataPelvic1 = self.pose_world[firstFoot[i][0]][pelvicIndex]
-                dataPelvic2 = self.pose_world[firstFoot[i + 1][0]][pelvicIndex]
+                dataFirst1 = self.pose_world[firstFoot[i][0]][firstIndex]
+                dataNext1 = self.pose_world[nextFoot[i - 1][0]][nextIndex]
+                dataFirst2 = self.pose_world[firstFoot[i + 1][0]][firstIndex]
+                dataNext2 = self.pose_world[nextFoot[i][0]][nextIndex]
+
+                [firstLineSlope, firstLineIntercept] = slope_intercept(dataFirst1[0], dataFirst1[2], dataFirst2[0], dataFirst2[2])
+                [nextLineSlope, nextLineIntercept] = slope_intercept(dataNext1[0], dataNext1[2], dataNext2[0], dataNext2[2])
+
+                first_perp_slope = 1 / firstLineSlope
+                next_perp_slope = 1 / nextLineSlope
+
+                [firstFootSlope, firstFootIntercept] = point_slope(next_perp_slope, dataFirst1[0], dataFirst1[2])
+                [nextFootSlope, nextFootIntercept] = point_slope(first_perp_slope, dataNext2[0], dataNext2[2])
+
+                [firstInterceptX, firstInterceptY] = intercept(nextLineSlope, nextLineIntercept, firstFootSlope, firstFootIntercept)
+                [nextInterceptX, nextInterceptY] = intercept(firstLineSlope, firstLineIntercept, nextFootSlope, nextFootIntercept)
+
+                widthsFirst.append(dist(dataFirst1[0], dataFirst1[2], firstInterceptX, firstInterceptY))
+                widthsNext.append(dist(dataNext2[0], dataNext2[2], nextInterceptX, nextInterceptY))
 
             else:
                 dataFirst = self.pose_world[firstFoot[i][0]][firstIndex]
-                dataNext = self.pose_world[nextFoot[i][0]][nextIndex]
-                dataPelvic1 = self.pose_world[firstFoot[i][0]][pelvicIndex]
-                dataPelvic2 = self.pose_world[nextFoot[i][0]][pelvicIndex]
+                dataNext1 = self.pose_world[nextFoot[i - 1][1]][nextIndex]
+                dataNext2 = self.pose_world[nextFoot[i][0]][nextIndex]
 
-            [plineSlope, plineIntercept] = slope_intercept(dataPelvic1[0], dataPelvic1[2], dataPelvic2[0], dataPelvic2[2])
+                [nextLineSlope, nextLineIntercept] = slope_intercept(dataNext1[0], dataNext1[2], dataNext2[0], dataNext2[2])
 
-            perp_slope = 1 / plineSlope
+                next_perp_slope = 1 / nextLineSlope
 
-            [firstFootSlope, firstFootIntercept] = point_slope(perp_slope, dataFirst[0], dataFirst[2])
-            [nextFootSlope, nextFootIntercept] = point_slope(perp_slope, dataNext[0], dataNext[2])
+                [firstFootSlope, firstFootIntercept] = point_slope(next_perp_slope, dataFirst[0], dataFirst[2])
 
-            [firstInterceptX, firstInterceptY] = intercept(plineSlope, plineIntercept, firstFootSlope, firstFootIntercept)
-            [nextInterceptX, nextInterceptY] = intercept(plineSlope, plineIntercept, nextFootSlope, nextFootIntercept)
+                [firstInterceptX, firstInterceptY] = intercept(nextLineSlope, nextLineIntercept, firstFootSlope, firstFootIntercept)
 
-            widthsFirst.append(dist(dataFirst[0], dataFirst[2], firstInterceptX, firstInterceptY))
-            widthsNext.append(dist(dataNext[0], dataNext[2], nextInterceptX, nextInterceptY))
+                widthsFirst.append(dist(dataFirst[0], dataFirst[2], firstInterceptX, firstInterceptY))
+
+                
+
+        
+
+            
+
+            
 
 
      
@@ -299,21 +342,21 @@ class paramExtract():
         #Note that it cannot be the case that there are more footsteps of the next foot, since this would imply that 
         #the next foot has 2 or more identified footfalls than the first foot
         if (misMatch):
-            dataLast = self.pose_world[firstFoot[len(minFoot)][0]][firstIndex]
+            dataLast2 = self.pose_world[firstFoot[len(minFoot)][0]][firstIndex]
+            dataLast1 = self.pose_world[firstFoot[len(minFoot) - 1][0]][firstIndex]
+
+            dataNext = self.pose_world[nextFoot[len(minFoot) - 1][0]][nextIndex]
             
 
-            dataPelvic2 = self.pose_world[firstFoot[len(minFoot)][0]][pelvicIndex]
-            dataPelvic1 = self.pose_world[firstFoot[len(minFoot) - 1][0]][pelvicIndex]
+            [lastLineSlope, lastLineIntercept] = slope_intercept(dataLast1[0], dataLast1[2], dataLast2[0], dataLast2[2])
 
-            [plineSlope, plineIntercept] = slope_intercept(dataPelvic1[0], dataPelvic1[2], dataPelvic2[0], dataPelvic2[2])
+            perp_slope = 1 / lastLineSlope
 
-            perp_slope = 1 / plineSlope
+            [nextFootSlope, nextFootIntercept] = point_slope(perp_slope, dataNext[0], dataNext[2])
 
-            [lastFootSlope, lastFootIntercept] = point_slope(perp_slope, dataLast[0], dataLast[2])
+            [nextInterceptX, nextInterceptY] = intercept(lastLineSlope, lastLineIntercept, nextFootSlope, nextFootIntercept)
 
-            [lastInterceptX, lastInterceptY] = intercept(plineSlope, plineIntercept, lastFootSlope, lastFootIntercept)
-
-            widthsFirst.append(dist(dataLast[0], dataLast[2], lastInterceptX, lastInterceptY))
+            widthsNext.append(dist(dataNext[0], dataNext[2], nextInterceptX, nextInterceptY))
 
         #Calculating averages and returning left and right step widths
 
@@ -324,6 +367,8 @@ class paramExtract():
         totalValNext = 0
         for val in widthsNext:
             totalValNext += val
+
+
 
         if (firstFoot == frameIDsLeft):
             self.stepWidthLeft = totalValFirst/len(widthsFirst)
@@ -356,6 +401,7 @@ class paramExtract():
         #Determining which foot had more footfalls
         if frameDiff == 0:
             misMatch = False
+            minFoot = frameIDsLeft if len(frameIDsLeft) < len(frameIDsRight) else frameIDsRight
             print("Footfalls even")
         elif frameDiff == 1:
             misMatch = True
@@ -521,7 +567,7 @@ class paramExtract():
 
         video = cv.VideoCapture(self.VIDEO_PATH)
         # Get the FPS using the CAP_PROP_FPS property
-        fps = video.get(cv2.CAP_PROP_FPS)
+        fps = video.get(cv.CAP_PROP_FPS)
         video.release()
 
         [frameIDsLeft, frameIDsRight] = self.identifyFootfall()
@@ -535,12 +581,21 @@ class paramExtract():
         self.cadence = stepCount * (60/duration)
         return self.cadence
         
-        
+    
 
 test = paramExtract('output/demo/Normal_Andrew1/wham_output.pkl', 'dataset/body_models/smpl')
 print(test.identifyFootfall())
-print(test.calculateStepLength())
-print(test.calculateStepWidth())
+print(f'Step Length: {test.calculateStepLength()}')
+print(f'Step Width: {test.calculateStepWidth()}')
+
+
+# print('left:')
+# for footfall in test.identifyFootfall()[0]:
+#     print(test.pose_world[footfall[0]][7])
+
+# print('Right:')
+# for footfall in test.identifyFootfall()[1]:
+#     print(test.pose_world[footfall[0]][8])
 
 
         
